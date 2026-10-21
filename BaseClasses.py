@@ -25,5 +25,3 @@ class BaseReplacement(Replacement):
     def sort_best_first(self, population, mode):
         # best solution first (lowest fitness if "min", highest if "max")
         return sorted(population, key=lambda sol: sol.fitness, reverse=(mode == "max"))
-
-    
