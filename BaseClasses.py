@@ -23,5 +23,5 @@ class BaseReplacement(Replacement):
     Children only need to write replace()."""
 
     def sort_best_first(self, population, mode):
-        # best solution first (lowest fitness if "min", highest if "max")
-        return sorted(population, key=lambda sol: sol.fitness, reverse=(mode == "max"))
+        ranked = sorted(population, key=lambda sol: sol.fitness, reverse=(mode == "max"))
+        return sorted(ranked, key=lambda sol: sol.feasible, reverse=True)

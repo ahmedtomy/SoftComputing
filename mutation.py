@@ -1,5 +1,5 @@
 import random
-from interfaces import Mutation
+from .interfaces import Mutation
 
 class BitFlipMutation(Mutation):
 

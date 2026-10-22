@@ -1,6 +1,3 @@
-import random
-
-
 class GAConfig:
     def __init__(self,
                  population_size=100,
@@ -47,6 +44,3 @@ class GAConfig:
         self.penalty_weight = penalty_weight
         self.early_stop_patience = early_stop_patience
         self.seed = seed
-        # Collaborating operators can use config.rng rather than the global
-        # random module, making a whole experiment repeatable from one seed.
-        self.rng = random.Random(seed)
