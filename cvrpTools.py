@@ -10,16 +10,12 @@ def Iproblem(demands, capacity, num_vehicles):
         raise ValueError("Total demand exceeds total fleet capacity.")
     return {"demands": list(demands), "capacity": capacity, "num_vehicles": num_vehicles}
 
-
 def getCustomers(demands):
     return list(range(1, len(demands)))
 
-
-
 def decode(chromosome, demands, capacity, num_vehicles):
     
-    for i in range(num_vehicles):
-        routes = [[]]
+    routes = [[] for _ in range(num_vehicles)]
     loads = [0] * num_vehicles
     v = 0
     for c in chromosome:
@@ -30,19 +26,15 @@ def decode(chromosome, demands, capacity, num_vehicles):
         loads[v] += d
     return routes, loads
 
-
 def getRouteAndLoads(chromosome, demands, capacity, num_vehicles):
     return decode(chromosome, demands, capacity, num_vehicles)[1]
-
 
 def CheckDups(chromosome, demands):
     return sorted(chromosome) == getCustomers(demands)
 
-
 def OverWeight(chromosome, demands, capacity, num_vehicles):
     loads = getRouteAndLoads(chromosome, demands, capacity, num_vehicles)
     return sum(max(0, load - capacity) for load in loads)
-
 
 def CorrectOption(chromosome, demands, capacity, num_vehicles):
     if not CheckDups(chromosome, demands):
@@ -53,8 +45,6 @@ def penalty(chromosome, demands, capacity, num_vehicles, weight=1000.0):
     if not CheckDups(chromosome, demands):
         return weight * sum(demands)  
     return weight * OverWeight(chromosome, demands, capacity, num_vehicles)
-
-
 
 def Offload(routes, loads, r, demands, capacity):
     cb=sorted(routes[r], key=lambda c: -demands[c])
@@ -67,7 +57,6 @@ def Offload(routes, loads, r, demands, capacity):
                 loads[t] += demands[c]
                 return True
     return False  
-
 
 def swap(routes, loads, r, demands, capacity):
     for c in routes[r]:
@@ -86,10 +75,9 @@ def swap(routes, loads, r, demands, capacity):
                     return True
     return False  
 
-
 def repair(chromosome, demands, capacity, num_vehicles, max_iter=200):
-    
-    if not is_valid_permutation(chromosome, demands):
+
+    if not CheckDups(chromosome, demands):
         raise ValueError("repair() needs a valid permutation of the customers.")
 
     routes, loads = decode(chromosome, demands, capacity, num_vehicles)
