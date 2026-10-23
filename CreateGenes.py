@@ -1,5 +1,18 @@
 import random
-from .BaseClasses import BaseChromosome
+from .interfaces import Chromosome
+from .CandidateSolution import CandidateSolution
+class BaseChromosome(Chromosome):
+    """Shared code for Binary, Integer and Floating chromosomes.
+    Children only need to write create_genes()."""
+
+    def __init__(self, length):
+        self.length = length
+
+    def create_candidate(self):
+        return CandidateSolution(self.create_genes())
+
+    def create_population(self, n):
+        return [self.create_candidate() for _ in range(n)]
 
 class BinaryChromosome(BaseChromosome):
     def __init__(self, length):

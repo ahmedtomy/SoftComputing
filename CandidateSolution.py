@@ -21,6 +21,8 @@ class CandidateSolution:
         self.violation = 0
 
     def is_better_than(self, other, mode="min"):
+        if self.feasible != other.feasible:
+            return self.feasible
         if mode == "min":
             return self.fitness < other.fitness
         return self.fitness > other.fitness

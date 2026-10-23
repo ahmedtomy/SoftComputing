@@ -1,5 +1,5 @@
 import random
-from interfaces import Crossover
+from .interfaces import Crossover
 
 
 class MultiPointCrossover(Crossover):
