@@ -1,4 +1,67 @@
+def _validate_population_size(size):
+    if not isinstance(size, int):
+        raise ValueError("population_size must be an integer of at least 2")
+    if size < 2:
+        raise ValueError("population_size must be an integer of at least 2")
+
+
+def _validate_generations(generations):
+    if not isinstance(generations, int):
+        raise ValueError("generations must be a non-negative integer")
+    if generations < 0:
+        raise ValueError("generations must be a non-negative integer")
+
+
+def _validate_mode(mode):
+    if mode != "min" and mode != "max":
+        raise ValueError("mode must be 'min' or 'max'")
+
+
+def _validate_infeasible_strategy(strategy):
+    allowed = ("penalty", "repair", "reject")
+    if strategy not in allowed:
+        raise ValueError("infeasible_strategy must be penalty/repair/reject")
+
+
+def _validate_rates(crossover_rate, mutation_rate):
+    if crossover_rate < 0 or crossover_rate > 1:
+        raise ValueError("rates must be between 0 and 1")
+    if mutation_rate < 0 or mutation_rate > 1:
+        raise ValueError("rates must be between 0 and 1")
+
+
+def _validate_elitism_count(elitism_count, population_size):
+    if not isinstance(elitism_count, int):
+        raise ValueError("elitism_count must be between 0 and population_size - 1")
+    if elitism_count < 0:
+        raise ValueError("elitism_count must be between 0 and population_size - 1")
+    if elitism_count >= population_size:
+        raise ValueError("elitism_count must be between 0 and population_size - 1")
+
+
+def _validate_tournament_size(tournament_size):
+    if not isinstance(tournament_size, int):
+        raise ValueError("tournament_size must be a positive integer")
+    if tournament_size < 1:
+        raise ValueError("tournament_size must be a positive integer")
+
+
+def _validate_penalty_weight(penalty_weight):
+    if penalty_weight < 0:
+        raise ValueError("penalty_weight must be non-negative")
+
+
+def _validate_early_stop_patience(early_stop_patience):
+    if early_stop_patience is not None:
+        if not isinstance(early_stop_patience, int):
+            raise ValueError("early_stop_patience must be a non-negative integer or None")
+        if early_stop_patience < 0:
+            raise ValueError("early_stop_patience must be a non-negative integer or None")
+
+
 class GAConfig:
+   
+
     def __init__(self,
                  population_size=100,
                  generations=200,
@@ -6,32 +69,21 @@ class GAConfig:
                  mutation_rate=0.05,
                  elitism_count=2,
                  tournament_size=3,
-                 mode="min",                    
-                 infeasible_strategy="penalty", # "penalty", "repair" or "reject"
+                 mode="min",
+                 infeasible_strategy="penalty",
                  penalty_weight=1000.0,
                  early_stop_patience=50,
                  seed=None):
 
-        if not isinstance(population_size, int) or population_size < 2:
-            raise ValueError("population_size must be an integer of at least 2")
-        if not isinstance(generations, int) or generations < 0:
-            raise ValueError("generations must be a non-negative integer")
-        if mode not in ("min", "max"):
-            raise ValueError("mode must be 'min' or 'max'")
-        if infeasible_strategy not in ("penalty", "repair", "reject"):
-            raise ValueError("infeasible_strategy must be penalty/repair/reject")
-        if not (0 <= crossover_rate <= 1 and 0 <= mutation_rate <= 1):
-            raise ValueError("rates must be between 0 and 1")
-        if not isinstance(elitism_count, int) or not 0 <= elitism_count < population_size:
-            raise ValueError("elitism_count must be between 0 and population_size - 1")
-        if not isinstance(tournament_size, int) or tournament_size < 1:
-            raise ValueError("tournament_size must be a positive integer")
-        if penalty_weight < 0:
-            raise ValueError("penalty_weight must be non-negative")
-        if early_stop_patience is not None and (
-            not isinstance(early_stop_patience, int) or early_stop_patience < 0
-        ):
-            raise ValueError("early_stop_patience must be a non-negative integer or None")
+        _validate_population_size(population_size)
+        _validate_generations(generations)
+        _validate_mode(mode)
+        _validate_infeasible_strategy(infeasible_strategy)
+        _validate_rates(crossover_rate, mutation_rate)
+        _validate_elitism_count(elitism_count, population_size)
+        _validate_tournament_size(tournament_size)
+        _validate_penalty_weight(penalty_weight)
+        _validate_early_stop_patience(early_stop_patience)
 
         self.population_size = population_size
         self.generations = generations
