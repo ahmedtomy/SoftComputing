@@ -1,7 +1,11 @@
 """Population-survival strategies used by :class:`GeneticAlgorithm`."""
 
-from .BaseClasses import BaseReplacement
-
+from .interfaces import Replacement
+class BaseReplacement(Replacement):
+    
+    def sort_best_first(self, population, mode):
+        ranked = sorted(population, key=lambda sol: sol.fitness, reverse=(mode == "max"))
+        return sorted(ranked, key=lambda sol: sol.feasible, reverse=True)
 
 class ElitistReplacement(BaseReplacement):
     """Keep the best parents, then fill the population with the best survivors.
