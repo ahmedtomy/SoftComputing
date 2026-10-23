@@ -1,5 +1,8 @@
-from .interfaces import Selection
 import random
+
+from .interfaces import Selection
+
+
 class TournamentSelection(Selection):
     """Selects parents by running tournaments among randomly sampled individuals."""
 
@@ -12,18 +15,30 @@ class TournamentSelection(Selection):
         if not population:
             raise ValueError("Population cannot be empty.")
 
-        # Determine tournament size from override or configuration
         if self.tournament_size is not None:
             k = self.tournament_size
         else:
             k = config.tournament_size
 
-        # Tournament size cannot exceed the population size
+        if not isinstance(k, int) or k < 1:
+            raise ValueError("tournament_size must be a positive integer")
+
         if k > len(population):
             k = len(population)
 
         selected_parents = []
 
+        for _ in range(n):
+            contenders = random.sample(population, k)
+            winner = contenders[0]
+
+            for contender in contenders[1:]:
+                if contender.is_better_than(winner, config.mode):
+                    winner = contender
+
+            selected_parents.append(winner.copy())
+
+        return selected_parents
 
 
 class RouletteWheelSelection(Selection):
@@ -36,7 +51,6 @@ class RouletteWheelSelection(Selection):
 
         epsilon = 1e-8
 
-        # Prefer feasible individuals; fall back to all if none are feasible
         feasible_candidates = []
         for solution in population:
             if solution.feasible:
@@ -47,12 +61,10 @@ class RouletteWheelSelection(Selection):
         else:
             candidates = population
 
-        # Extract fitness values for candidates
         fitnesses = []
         for solution in candidates:
             fitnesses.append(solution.fitness)
 
-        # Convert fitness values into positive selection weights
         weights = []
         if config.mode == "max":
             min_fitness = min(fitnesses)
@@ -69,7 +81,6 @@ class RouletteWheelSelection(Selection):
                 weight = (max_fitness - fitness_value) + epsilon
                 weights.append(weight)
 
-        # Sample n candidates with probabilities proportional to weights
         chosen_candidates = random.choices(candidates, weights=weights, k=n)
 
         selected_solutions = []

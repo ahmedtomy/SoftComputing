@@ -2,7 +2,6 @@ import random
 
 from .infeasibility import DefaultInfeasibilityHandler
 
-# How many times we retry before giving up when solutions keep being rejected
 MAX_ATTEMPTS_FACTOR = 100
 
 
@@ -24,12 +23,9 @@ class GeneticAlgorithm:
             infeasibility_handler = DefaultInfeasibilityHandler()
         self.infeasibility_handler = infeasibility_handler
 
-        self.best_solution = None   # best solution found in ALL generations
+        self.best_solution = None
         self.history = {"best_fitness": [], "average_fitness": []}
 
-    # ------------------------------------------------------------------
-    # Main loop
-    # ------------------------------------------------------------------
     def run(self, verbose=False):
         if self.config.seed is not None:
             random.seed(self.config.seed)
@@ -64,9 +60,6 @@ class GeneticAlgorithm:
 
         return self.best_solution, self.history
 
-    # ------------------------------------------------------------------
-    # Step 1: initial population
-    # ------------------------------------------------------------------
     def _create_initial_population(self):
         population = []
         attempts = 0
@@ -81,14 +74,11 @@ class GeneticAlgorithm:
 
             candidate = self.chromosome.create_candidate()
             evaluated = self.infeasibility_handler.evaluate(candidate, self.problem, self.config)
-            if evaluated is not None:       # None means the solution was rejected
+            if evaluated is not None:
                 population.append(evaluated)
 
         return population
 
-    # ------------------------------------------------------------------
-    # Step 2: offspring (selection -> crossover -> mutation -> evaluation)
-    # ------------------------------------------------------------------
     def _create_offspring(self, population):
         offspring = []
         attempts = 0
@@ -111,17 +101,12 @@ class GeneticAlgorithm:
                 if evaluated is not None and len(offspring) < self.config.population_size:
                     offspring.append(evaluated)
 
-        # If too many children were rejected, fill the gap with copies of old solutions
         while len(offspring) < self.config.population_size:
             offspring.append(random.choice(population).copy())
 
         return offspring
 
-    # ------------------------------------------------------------------
-    # Best solution and history
-    # ------------------------------------------------------------------
     def _is_better(self, candidate, current_best):
-        # a feasible solution always beats an infeasible one
         if candidate.feasible != current_best.feasible:
             return candidate.feasible
         return candidate.is_better_than(current_best, self.config.mode)

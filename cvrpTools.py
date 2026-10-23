@@ -49,7 +49,6 @@ def decode(chromosome, demands, capacity, num_vehicles):
     for customer in chromosome:
         customer_demand = demands[customer]
 
-        # Move to next vehicle if current vehicle would exceed capacity, unless on the last vehicle
         if loads[vehicle_index] + customer_demand > capacity:
             if vehicle_index < num_vehicles - 1:
                 vehicle_index += 1
@@ -181,7 +180,6 @@ def repair(chromosome, demands, capacity, num_vehicles, max_iter=200):
 
         route_index = overloaded_vehicles[0]
 
-        # Try offloading a customer first; if that fails, try swapping
         repaired = Offload(routes, loads, route_index, demands, capacity)
         if not repaired:
             repaired = swap(routes, loads, route_index, demands, capacity)
@@ -189,7 +187,6 @@ def repair(chromosome, demands, capacity, num_vehicles, max_iter=200):
         if not repaired:
             break
 
-    # Flatten routes back into a single chromosome sequence
     repaired_chromosome = []
     for route in routes:
         for customer in route:
@@ -198,7 +195,6 @@ def repair(chromosome, demands, capacity, num_vehicles, max_iter=200):
     old_excess = OverWeight(chromosome, demands, capacity, num_vehicles)
     new_excess = OverWeight(repaired_chromosome, demands, capacity, num_vehicles)
 
-    # Only accept the repaired solution if it reduced the total overweight
     if new_excess < old_excess:
         return repaired_chromosome
 

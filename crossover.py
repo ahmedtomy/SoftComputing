@@ -12,14 +12,12 @@ class MultiPointCrossover(Crossover):
         gene_count = len(parent1.genes)
         cut_count = min(self.num_points, gene_count - 1)
 
-        # Choose distinct cut points between gene indices 1 and gene_count - 1
         cut_points = sorted(random.sample(range(1, gene_count), cut_count))
 
         genes1 = []
         genes2 = []
         is_swapping = False
 
-        # Walk through genes, alternating source parents whenever a cut point is reached
         for index in range(gene_count):
             if index in cut_points:
                 is_swapping = not is_swapping
@@ -36,7 +34,6 @@ class MultiPointCrossover(Crossover):
         child1.genes = genes1
         child2.genes = genes2
 
-        # Reset fitness since new gene sequences have not been evaluated yet
         child1.reset()
         child2.reset()
 
@@ -56,29 +53,24 @@ class OrderCrossover(Crossover):
         """Create a child permutation preserving a slice from keep_parent and order from fill_parent."""
         gene_count = len(keep_parent.genes)
 
-        # Step 1: Pick two random cut positions to define the segment to keep
         cut_a = random.randint(0, gene_count - 1)
         cut_b = random.randint(0, gene_count - 1)
         start_index = min(cut_a, cut_b)
-        end_index = max(cut_a, cut_b) + 1  # exclusive upper bound
+        end_index = max(cut_a, cut_b) + 1
 
-        # Initialize child with empty spots
         child_genes = [None] * gene_count
 
-        # Copy the selected segment from keep_parent
         copied_segment = []
         for index in range(start_index, end_index):
             gene = keep_parent.genes[index]
             child_genes[index] = gene
             copied_segment.append(gene)
 
-        # Step 2: Collect genes from fill_parent that were not in the copied slice
         leftover_genes = []
         for gene in fill_parent.genes:
             if gene not in copied_segment:
                 leftover_genes.append(gene)
 
-        # Step 3: Place the leftover genes into remaining empty spots from left to right
         leftover_index = 0
         for index in range(gene_count):
             if child_genes[index] is None:

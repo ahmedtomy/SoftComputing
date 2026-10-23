@@ -6,11 +6,11 @@ class CandidateSolution:
 
     def __init__(self, genes):
         """Initialize a candidate solution with its genes and default metadata."""
-        self.genes = genes          #[] of the solution
-        self.fitness = None         # final fitness + penalty
-        self.raw_fitness = None     # original fitness
-        self.feasible = True        # True if all problem constraints are satisfied
-        self.violation = 0          # numerical measure of how much constraints are broken
+        self.genes = genes
+        self.fitness = None
+        self.raw_fitness = None
+        self.feasible = True
+        self.violation = 0
 
     def copy(self):
         return copy.deepcopy(self)

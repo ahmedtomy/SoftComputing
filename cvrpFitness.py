@@ -115,7 +115,6 @@ def format_cvrp_solution(
         cumulative = 0
         stops = [f"{DEPOT} Load(0)"]
         for customer in route:
-            # The published example shows the load on arrival, before pickup.
             stops.append(f"{customer} Load({cumulative})")
             cumulative += demands[customer]
         stops.append(f"{DEPOT} Load({load})")
