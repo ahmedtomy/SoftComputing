@@ -1,99 +1,208 @@
 import random
+
 DEPOT = 0
 
+
 def Iproblem(demands, capacity, num_vehicles):
+    """Validate CVRP parameters and return a dictionary of problem dimensions."""
     if demands[DEPOT] != 0:
         raise ValueError("The depot (index 0) must have demand 0.")
-    if max(demands) > capacity:
+
+    max_demand = 0
+    total_demand = 0
+    for demand in demands:
+        if demand > max_demand:
+            max_demand = demand
+        total_demand += demand
+
+    if max_demand > capacity:
         raise ValueError("A customer's demand exceeds the vehicle capacity.")
-    if sum(demands) > capacity * num_vehicles:
+
+    fleet_capacity = capacity * num_vehicles
+    if total_demand > fleet_capacity:
         raise ValueError("Total demand exceeds total fleet capacity.")
-    return {"demands": list(demands), "capacity": capacity, "num_vehicles": num_vehicles}
+
+    demand_list = []
+    for demand in demands:
+        demand_list.append(demand)
+
+    return {"demands": demand_list, "capacity": capacity, "num_vehicles": num_vehicles}
+
 
 def getCustomers(demands):
-    return list(range(1, len(demands)))
+    """Return a list of customer IDs excluding the depot at index 0."""
+    customers = []
+    for customer_id in range(1, len(demands)):
+        customers.append(customer_id)
+    return customers
+
 
 def decode(chromosome, demands, capacity, num_vehicles):
-    
-    routes = [[] for _ in range(num_vehicles)]
-    loads = [0] * num_vehicles
-    v = 0
-    for c in chromosome:
-        d = demands[c]
-        if loads[v] + d > capacity and v < num_vehicles - 1:
-            v += 1
-        routes[v].append(c)
-        loads[v] += d
+    """Split a customer sequence into vehicle routes respecting vehicle capacity where possible."""
+    routes = []
+    loads = []
+    for _ in range(num_vehicles):
+        routes.append([])
+        loads.append(0)
+
+    vehicle_index = 0
+    for customer in chromosome:
+        customer_demand = demands[customer]
+
+        # Move to next vehicle if current vehicle would exceed capacity, unless on the last vehicle
+        if loads[vehicle_index] + customer_demand > capacity:
+            if vehicle_index < num_vehicles - 1:
+                vehicle_index += 1
+
+        routes[vehicle_index].append(customer)
+        loads[vehicle_index] += customer_demand
+
     return routes, loads
 
+
 def getRouteAndLoads(chromosome, demands, capacity, num_vehicles):
-    return decode(chromosome, demands, capacity, num_vehicles)[1]
+    """Decode chromosome and return only the vehicle loads."""
+    routes, loads = decode(chromosome, demands, capacity, num_vehicles)
+    return loads
+
 
 def CheckDups(chromosome, demands):
-    return sorted(chromosome) == getCustomers(demands)
+    """Check whether chromosome contains exactly each customer once with no duplicates or omissions."""
+    sorted_chromosome = sorted(chromosome)
+    expected_customers = getCustomers(demands)
+    return sorted_chromosome == expected_customers
+
 
 def OverWeight(chromosome, demands, capacity, num_vehicles):
+    """Calculate the total capacity violation summed across all vehicles."""
     loads = getRouteAndLoads(chromosome, demands, capacity, num_vehicles)
-    return sum(max(0, load - capacity) for load in loads)
+    total_overweight = 0
+    for load in loads:
+        if load > capacity:
+            excess = load - capacity
+            total_overweight += excess
+    return total_overweight
+
 
 def CorrectOption(chromosome, demands, capacity, num_vehicles):
+    """Return True if chromosome is a valid permutation and no vehicle is overloaded."""
     if not CheckDups(chromosome, demands):
         return False
-    return OverWeight(chromosome, demands, capacity, num_vehicles) == 0
+    total_overweight = OverWeight(chromosome, demands, capacity, num_vehicles)
+    return total_overweight == 0
+
 
 def penalty(chromosome, demands, capacity, num_vehicles, weight=1000.0):
+    """Calculate the penalty cost for duplicate customers or capacity violations."""
     if not CheckDups(chromosome, demands):
-        return weight * sum(demands)  
-    return weight * OverWeight(chromosome, demands, capacity, num_vehicles)
+        total_demand = 0
+        for demand in demands:
+            total_demand += demand
+        return weight * total_demand
+
+    total_overweight = OverWeight(chromosome, demands, capacity, num_vehicles)
+    return weight * total_overweight
+
+
+def _try_offload_customer(customer, source_route, routes, loads, demands, capacity):
+    """Attempt to move one customer from source route to another route with spare capacity."""
+    customer_demand = demands[customer]
+    for target_route in range(len(routes)):
+        if target_route == source_route:
+            continue
+        if loads[target_route] + customer_demand <= capacity:
+            routes[source_route].remove(customer)
+            routes[target_route].append(customer)
+            loads[source_route] -= customer_demand
+            loads[target_route] += customer_demand
+            return True
+    return False
+
 
 def Offload(routes, loads, r, demands, capacity):
-    cb=sorted(routes[r], key=lambda c: -demands[c])
-    for c in cb:
-        for t in range(len(routes)):
-            if t != r and loads[t] + demands[c] <= capacity:
-                routes[r].remove(c)
-                routes[t].append(c)
-                loads[r] -= demands[c]
-                loads[t] += demands[c]
+    """Move a high-demand customer from overloaded route r to another vehicle if space allows."""
+    def customer_neg_demand(customer_id):
+        return -demands[customer_id]
+
+    sorted_customers = sorted(routes[r], key=customer_neg_demand)
+    for customer in sorted_customers:
+        was_moved = _try_offload_customer(customer, r, routes, loads, demands, capacity)
+        if was_moved:
+            return True
+    return False
+
+
+def _try_swap_pair(customer_a, source_route, target_route, routes, loads, demands, capacity):
+    """Try to swap customer_a with any customer on target_route to reduce source route load."""
+    demand_a = demands[customer_a]
+    for customer_b in routes[target_route]:
+        difference = demand_a - demands[customer_b]
+        if difference > 0:
+            if loads[target_route] + difference <= capacity:
+                index_a = routes[source_route].index(customer_a)
+                index_b = routes[target_route].index(customer_b)
+                routes[source_route][index_a] = customer_b
+                routes[target_route][index_b] = customer_a
+                loads[source_route] -= difference
+                loads[target_route] += difference
                 return True
-    return False  
+    return False
+
 
 def swap(routes, loads, r, demands, capacity):
-    for c in routes[r]:
-        for t in range(len(routes)):
-            if t == r:
+    """Swap a customer on overloaded route r with a lighter customer from another route."""
+    for customer in routes[r]:
+        for target_route in range(len(routes)):
+            if target_route == r:
                 continue
-            for c2 in routes[t]:
-                diff = demands[c] - demands[c2]  
-                if diff > 0 and loads[t] + diff <= capacity:
-                    i = routes[r].index(c)
-                    j = routes[t].index(c2)
-                    routes[r][i] = c2
-                    routes[t][j] = c
-                    loads[r] -= diff
-                    loads[t] += diff
-                    return True
-    return False  
+            was_swapped = _try_swap_pair(
+                customer, r, target_route, routes, loads, demands, capacity
+            )
+            if was_swapped:
+                return True
+    return False
+
 
 def repair(chromosome, demands, capacity, num_vehicles, max_iter=200):
-
+    """Heuristically repair an overloaded chromosome via offloading and swapping."""
     if not CheckDups(chromosome, demands):
         raise ValueError("repair() needs a valid permutation of the customers.")
 
     routes, loads = decode(chromosome, demands, capacity, num_vehicles)
 
-    for i in range(max_iter):
-        overloaded = [v for v in range(num_vehicles) if loads[v] > capacity]
-        if not overloaded:
-            break  
-        r = overloaded[0]
-        fixed = Offload(routes, loads, r, demands, capacity) or swap(routes, loads, r, demands, capacity)
-        if not fixed:
-            break  
-    nc = [c for route in routes for c in route]
+    for _ in range(max_iter):
+        overloaded_vehicles = []
+        for vehicle_index in range(num_vehicles):
+            if loads[vehicle_index] > capacity:
+                overloaded_vehicles.append(vehicle_index)
+
+        if len(overloaded_vehicles) == 0:
+            break
+
+        route_index = overloaded_vehicles[0]
+
+        # Try offloading a customer first; if that fails, try swapping
+        repaired = Offload(routes, loads, route_index, demands, capacity)
+        if not repaired:
+            repaired = swap(routes, loads, route_index, demands, capacity)
+
+        if not repaired:
+            break
+
+    # Flatten routes back into a single chromosome sequence
+    repaired_chromosome = []
+    for route in routes:
+        for customer in route:
+            repaired_chromosome.append(customer)
 
     old_excess = OverWeight(chromosome, demands, capacity, num_vehicles)
-    new_excess = OverWeight(nc, demands, capacity, num_vehicles)
+    new_excess = OverWeight(repaired_chromosome, demands, capacity, num_vehicles)
+
+    # Only accept the repaired solution if it reduced the total overweight
     if new_excess < old_excess:
-        return nc
-    return list(chromosome)
+        return repaired_chromosome
+
+    fallback_chromosome = []
+    for customer in chromosome:
+        fallback_chromosome.append(customer)
+    return fallback_chromosome
