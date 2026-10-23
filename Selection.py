@@ -1,3 +1,5 @@
+import random
+
 from .interfaces import Selection
 
 
@@ -15,7 +17,7 @@ class TournamentSelection(Selection):
         selected_parents = []
 
         for _ in range(n):
-            contenders = config.rng.sample(population, k)
+            contenders = random.sample(population, k)
 
             winner = contenders[0]
             for contender in contenders[1:]:
@@ -34,7 +36,11 @@ class RouletteWheelSelection(Selection):
 
         epsilon = 1e-8
 
-        fitnesses = [sol.fitness for sol in population]
+        candidates = [sol for sol in population if sol.feasible]
+        if not candidates:
+            candidates = population
+
+        fitnesses = [sol.fitness for sol in candidates]
 
         if config.mode == "max":
             min_fit = min(fitnesses)
@@ -48,17 +54,4 @@ class RouletteWheelSelection(Selection):
             weights = [(max_fit - f) + epsilon for f in fitnesses]
 
         total_weight = sum(weights)
-        selected_parents = []
-
-        for _ in range(n):
-            pick = config.rng.uniform(0, total_weight)
-            current = 0.0
-            for sol, weight in zip(population, weights):
-                current += weight
-                if current >= pick:
-                    selected_parents.append(sol.copy())
-                    break
-            else:
-                selected_parents.append(population[-1].copy())
-
-        return selected_parents
+        return [sol.copy() for sol in random.choices(candidates, weights=weights, k=n)]
